@@ -10,7 +10,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Run Terraform PR Commenter
-      uses: andresb39/terraform-pr-commenter@tf0.11.15
+    - name: Update PR comment
+      uses: andresb39/terraform-pr-commenter@tf1.4.5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
