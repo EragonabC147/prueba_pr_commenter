@@ -1,16 +1,21 @@
 name: Test Terraform PR Commenter
 
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
 
 jobs:
-  terraform-comment:
+  terraform:
+    name: 'Terraform'
     runs-on: ubuntu-latest
-
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TF_IN_AUTOMATION: true
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
     - name: Update PR comment
       uses: EragonabC147/commenter/@v1.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
