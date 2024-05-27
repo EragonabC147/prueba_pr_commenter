@@ -27,7 +27,7 @@ check_prerequisites() {
 
 # Function to validate PR environment
 validate_pr_environment() {
-  if [ -z "${GITHUB_EVENT_PATH:-}" ] || [ -z "${INPUT_GITHUB_TOKEN:-}" ]; then
+  if [ -z "${GITHUB_EVENT_PATH:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
     info "GITHUB_EVENT_PATH or INPUT_GITHUB_TOKEN environment variable missing."
     exit 1
   fi

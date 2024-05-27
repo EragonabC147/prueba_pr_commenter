@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,10 +28,8 @@ jobs:
         uses: ./.github/action
         with:
           arg: "init"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Terraform Plan
         uses: ./.github/action
         with:
           arg: "plan"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
