@@ -1,0 +1,13 @@
+name: "Terraform Actions"
+description: "Running Terraform commands (fmt, init, plan, apply, validate)"
+
+inputs:
+  arg:
+    description: "Arguments to used with Terraform"
+    required: true
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.arg }}
