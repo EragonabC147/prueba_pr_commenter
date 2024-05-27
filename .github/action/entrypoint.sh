@@ -5,6 +5,8 @@ set -euo pipefail
 # Configuration
 INFO_COLOR="\033[34;1m"
 RESET_COLOR="\033[0m"
+ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
+CONTENT_HEADER="Content-Type: application/json"
 
 # Solved detected dubious ownership in repository
 git config --global --add safe.directory /github/workspace
