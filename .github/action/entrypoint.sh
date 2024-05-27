@@ -44,7 +44,7 @@ get_modified_dirs() {
 
 # Function to post a comment on a PR
 post_comment() {
-  COMMENT=$1
+  COMMENT=$2
   PR_NUMBER=$(jq --raw-output .pull_request.number < "$GITHUB_EVENT_PATH")
 
   if [ "$PR_NUMBER" != "null" ]; then
