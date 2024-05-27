@@ -8,8 +8,8 @@ RESET_COLOR="\033[0m"
 ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
 CONTENT_HEADER="Content-Type: application/json"
 
-# Solved detected dubious ownership in repository
-git config --global --add safe.directory /github/workspace
+# Define home_dir
+home_dir=$(pwd)
 
 # Helper function to print info messages
 info() {
