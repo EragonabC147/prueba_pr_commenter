@@ -21,12 +21,14 @@ jobs:
           aws-session-token: ${{ secrets.AWS_TOKEN }}
           aws-region: us-east-1
 
-      - name: Run custom action
+      - name: Run Terraform Init
         uses: ./.github/action
         with:
           arg: "init"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Plan
+      - name: Run Terraform Plan
         uses: ./.github/action
         with:
           arg: "plan"
+          github-token: ${{ secrets.GITHUB_TOKEN }}

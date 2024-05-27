@@ -3,7 +3,10 @@ description: "Running Terraform commands (fmt, init, plan, apply, validate)"
 
 inputs:
   arg:
-    description: "Arguments to used with Terraform"
+    description: "Arguments to be used with Terraform"
+    required: true
+  github-token:
+    description: "GitHub token for posting comments"
     required: true
 
 runs:
@@ -11,3 +14,4 @@ runs:
   image: "Dockerfile"
   args:
     - ${{ inputs.arg }}
+    - ${{ secrets.GITHUB_TOKEN }}
