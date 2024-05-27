@@ -9,10 +9,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        tf_action: ["fmt", "init", "plan"]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,4 +24,9 @@ jobs:
       - name: Run custom action
         uses: ./.github/action
         with:
-          arg: ${{ matrix.tf_action }}
+          arg: "init"
+
+      - name: Run Plan
+        uses: ./.github/action
+        with:
+          arg: "plan"
