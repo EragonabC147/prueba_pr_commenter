@@ -14,4 +14,4 @@ runs:
   image: "Dockerfile"
   args:
     - ${{ inputs.arg }}
-    - ${{ secrets.GITHUB_TOKEN }}
+    - ${{ inputs.github-token }}
