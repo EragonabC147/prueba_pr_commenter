@@ -8,9 +8,6 @@ RESET_COLOR="\033[0m"
 ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
 CONTENT_HEADER="Content-Type: application/json"
 
-# Solved detected dubious ownership in repository
-git config --global --add safe.directory /github/workspace
-
 # Helper function to print info messages
 info() {
   echo -e "${INFO_COLOR}INFO:${RESET_COLOR} $1" >&2
@@ -108,9 +105,13 @@ do_terraform() {
       "plan")
         info "Running '$subcommand' in ${folder##*/}"
         terraform plan -no-color -input=false -out=tfplan -lock=false "$@"
-        terraform show -no-color tfplan > plan_output.txt
-        PLAN_OUTPUT=$(cat plan_output.txt)
-        output="${output}\n### Terraform Plan Result in ${folder##*/}\n\`\`\`\n$PLAN_OUTPUT\n\`\`\`"
+        if [ -f tfplan ]; then
+          terraform show -no-color tfplan > plan_output.txt
+          PLAN_OUTPUT=$(cat plan_output.txt)
+          output="${output}\n### Terraform Plan Result in ${folder##*/}\n\`\`\`\n$PLAN_OUTPUT\n\`\`\`"
+        else
+          info "Plan file not found in ${folder##*/}"
+        fi
         ;;
       "apply")
         info "Running '$subcommand' in ${folder##*/}"
@@ -140,16 +141,19 @@ do_terraform() {
 
       delete_existing_comment "$directory"
       local input
-      input=$(terraform show tfplan -no-color)
+      if [ -f tfplan ]; then
+        input=$(terraform show tfplan -no-color)
+        if [ "$input" != "This plan does nothing." ]; then
+          local clean_plan=${input::65300}
+          clean_plan=$(echo "$clean_plan" | sed -r 's/^([[:blank:]]*)([-+~])/\2\1/g')
+          [ "${HIGHLIGHT_CHANGES:-true}" = 'true' ] && clean_plan=$(echo "$clean_plan" | sed -r 's/^~/!/g')
 
-      if [ "$input" != "This plan does nothing." ]; then
-        local clean_plan=${input::65300}
-        clean_plan=$(echo "$clean_plan" | sed -r 's/^([[:blank:]]*)([-+~])/\2\1/g')
-        [ "${HIGHLIGHT_CHANGES:-true}" = 'true' ] && clean_plan=$(echo "$clean_plan" | sed -r 's/^~/!/g')
-
-        post_new_comment "$directory" "$clean_plan"
+          post_new_comment "$directory" "$clean_plan"
+        else
+          info "Plan is empty for $directory"
+        fi
       else
-        info "Plan is empty for $directory"
+        info "Plan file not found for $directory"
       fi
       cd "$home_dir"
     done
@@ -160,13 +164,15 @@ do_terraform() {
 main() {
   check_prerequisites
   validate_pr_environment
+
   local current_branch
   current_branch=$(git rev-parse --abbrev-ref HEAD)
   info "Comparing changes with main since $current_branch"
 
-  case "$1" in
+  local arg=$1
+  case "$arg" in
   fmt | init | validate | plan | apply)
-    do_terraform "$@"
+    do_terraform "$arg"
     ;;
   *)
     info "Usage: $0 {fmt|init|validate|plan|apply}"
