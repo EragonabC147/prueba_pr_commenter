@@ -27,13 +27,13 @@ check_prerequisites() {
 
 # Function to validate PR environment
 validate_pr_environment() {
-  if [[ -z "${GITHUB_EVENT_PATH:-}" || -z "${GITHUB_TOKEN:-}" ]]; then
-    info "GITHUB_EVENT_PATH or GITHUB_TOKEN environment variable missing."
+  if [ -z "${GITHUB_EVENT_PATH:-}" ] || [ -z "${INPUT_GITHUB_TOKEN:-}" ]; then
+    info "GITHUB_EVENT_PATH or INPUT_GITHUB_TOKEN environment variable missing."
     exit 1
   fi
 
   PR_NUMBER=$(jq -r ".pull_request.number" "$GITHUB_EVENT_PATH")
-  if [[ "$PR_NUMBER" == "null" ]]; then
+  if [ "$PR_NUMBER" = "null" ]; then
     info "This isn't a PR."
     exit 0
   fi
@@ -46,19 +46,21 @@ validate_pr_environment() {
 delete_existing_comment() {
   local directory=$1
   info "Looking for an existing plan PR comment for $directory."
-  local comment_id=$(curl -sS -H "Authorization: token $GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENTS_URL" | jq --arg directory "$directory" '.[] | select(.body | test("### Terraform `plan` Succeeded for Directory `"+$directory+"`")) | .id')
+  local comment_id
+  comment_id=$(curl -sS -H "Authorization: token $INPUT_GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENTS_URL" | jq --arg directory "$directory" '.[] | select(.body | test("### Terraform `plan` Succeeded for Directory `"+$directory+"`")) | .id')
 
-  if [[ -n "$comment_id" ]]; then
+  if [ -n "$comment_id" ]; then
     info "Deleting existing plan PR comment: $comment_id."
-    curl -sS -X DELETE -H "Authorization: token $GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENT_URI/$comment_id" > /dev/null
+    curl -sS -X DELETE -H "Authorization: token $INPUT_GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENT_URI/$comment_id" > /dev/null
   fi
 }
 
 # Function to post a new comment
 post_new_comment() {
-  local directory=$1 clean_plan=$2
+  local directory=$1
+  local clean_plan=$2
   local details_state=${EXPAND_SUMMARY_DETAILS:-true}
-  details_state=$([[ "$details_state" == "true" ]] && echo " open" || echo "")
+  details_state=$([ "$details_state" = "true" ] && echo " open" || echo "")
 
   local comment_body="### Terraform \`plan\` Succeeded for Directory \`$directory\`
 <details${details_state}><summary>Show Output</summary>
@@ -69,7 +71,7 @@ $clean_plan
 </details>"
 
   info "Adding plan comment to PR for $directory."
-  curl -sS -X POST -H "Authorization: token $GITHUB_TOKEN" -H "$ACCEPT_HEADER" -H "$CONTENT_HEADER" -d "$(jq --arg body "$comment_body" '.body = $body' <<< '{}')" -L "$PR_COMMENTS_URL" > /dev/null
+  curl -sS -X POST -H "Authorization: token $INPUT_GITHUB_TOKEN" -H "$ACCEPT_HEADER" -H "$CONTENT_HEADER" -d "$(echo '{}' | jq --arg body "$comment_body" '.body = $body')" -L "$PR_COMMENTS_URL" > /dev/null
 }
 
 # Function to get modified directories
@@ -134,12 +136,13 @@ do_terraform() {
       info "Formatting tfplan for PR Commenter on $folder"
 
       delete_existing_comment "$directory"
-      local input=$(terraform show tfplan -no-color)
+      local input
+      input=$(terraform show tfplan -no-color)
 
-      if [[ "$input" != "This plan does nothing." ]]; then
+      if [ "$input" != "This plan does nothing." ]; then
         local clean_plan=${input::65300}
         clean_plan=$(echo "$clean_plan" | sed -r 's/^([[:blank:]]*)([-+~])/\2\1/g')
-        [[ "${HIGHLIGHT_CHANGES:-true}" == 'true' ]] && clean_plan=$(echo "$clean_plan" | sed -r 's/^~/!/g')
+        [ "${HIGHLIGHT_CHANGES:-true}" = 'true' ] && clean_plan=$(echo "$clean_plan" | sed -r 's/^~/!/g')
 
         post_new_comment "$directory" "$clean_plan"
       else
@@ -154,7 +157,8 @@ do_terraform() {
 main() {
   check_prerequisites
   validate_pr_environment
-  local current_branch=$(git rev-parse --abbrev-ref HEAD)
+  local current_branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
   info "Comparing changes with main since $current_branch"
 
   case "$1" in
