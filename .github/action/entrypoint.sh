@@ -28,7 +28,7 @@ check_prerequisites() {
 # Function to validate PR environment
 validate_pr_environment() {
   if [ -z "${GITHUB_EVENT_PATH:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
-    info "GITHUB_EVENT_PATH or INPUT_GITHUB_TOKEN environment variable missing."
+    info "GITHUB_EVENT_PATH or GITHUB_TOKEN environment variable missing."
     exit 1
   fi
 
@@ -47,11 +47,11 @@ delete_existing_comment() {
   local directory=$1
   info "Looking for an existing plan PR comment for $directory."
   local comment_id
-  comment_id=$(curl -sS -H "Authorization: token $INPUT_GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENTS_URL" | jq --arg directory "$directory" '.[] | select(.body | test("### Terraform `plan` Succeeded for Directory `"+$directory+"`")) | .id')
+  comment_id=$(curl -sS -H "Authorization: token $GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENTS_URL" | jq --arg directory "$directory" '.[] | select(.body | test("### Terraform `plan` Succeeded for Directory `"+$directory+"`")) | .id')
 
   if [ -n "$comment_id" ]; then
     info "Deleting existing plan PR comment: $comment_id."
-    curl -sS -X DELETE -H "Authorization: token $INPUT_GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENT_URI/$comment_id" > /dev/null
+    curl -sS -X DELETE -H "Authorization: token $GITHUB_TOKEN" -H "$ACCEPT_HEADER" -L "$PR_COMMENT_URI/$comment_id" > /dev/null
   fi
 }
 
@@ -71,7 +71,7 @@ $clean_plan
 </details>"
 
   info "Adding plan comment to PR for $directory."
-  curl -sS -X POST -H "Authorization: token $INPUT_GITHUB_TOKEN" -H "$ACCEPT_HEADER" -H "$CONTENT_HEADER" -d "$(echo '{}' | jq --arg body "$comment_body" '.body = $body')" -L "$PR_COMMENTS_URL" > /dev/null
+  curl -sS -X POST -H "Authorization: token $GITHUB_TOKEN" -H "$ACCEPT_HEADER" -H "$CONTENT_HEADER" -d "$(echo '{}' | jq --arg body "$comment_body" '.body = $body')" -L "$PR_COMMENTS_URL" > /dev/null
 }
 
 # Function to get modified directories
