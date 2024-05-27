@@ -44,7 +44,7 @@ get_modified_dirs() {
 
 # Function to post a comment on a PR
 post_comment() {
-  COMMENT=$2
+  COMMENT=$1
   PR_NUMBER=$(jq --raw-output .pull_request.number < "$GITHUB_EVENT_PATH")
 
   if [ "$PR_NUMBER" != "null" ]; then
@@ -106,15 +106,18 @@ main() {
   local current_branch=$(git rev-parse --abbrev-ref HEAD)
   info "Comparing changes with main since $current_branch"
 
-  case "$1" in
+  local command=$1
+  shift
+
+  case "$command" in
   fmt | init | validate | plan | apply)
-    do_terraform "$@"
+    do_terraform "$command" "$@"
     ;;
   *)
     info "Usage: $0 {fmt|init|validate|plan|apply}"
     exit 1
     ;;
- esac
+  esac
 }
 
 main "$@"
