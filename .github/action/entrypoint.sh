@@ -100,69 +100,90 @@ get_modified_dirs() {
 do_terraform() {
   local subcommand=$1
   shift # Remove first argument
-  local modified_dirs=$(get_modified_dirs)
-  local output=""
+  local modified_dirs
+  modified_dirs=$(get_modified_dirs)
 
   for folder in $modified_dirs; do
-    # Change to the directory and execute in a subshell
-    (
-      cd "${folder}"
-      case "$subcommand" in
-      "plan")
-        info "Running '$subcommand' in ${folder##*/}"
-        terraform plan -no-color -input=false -out=tfplan -lock=false "$@"
-        if [ -f tfplan ]; then
-          terraform show -no-color tfplan > plan_output.txt
-          PLAN_OUTPUT=$(cat plan_output.txt)
-          output="${output}\n### Terraform Plan Result in ${folder##*/}\n\`\`\`\n$PLAN_OUTPUT\n\`\`\`"
-        else
-          info "Plan file not found in ${folder##*/}"
-        fi
-        ;;
-      "apply")
-        info "Running '$subcommand' in ${folder##*/}"
-        terraform apply -auto-approve -input=false -lock=false "$@"
-        ;;
-      "validate")
-        info "Running '$subcommand' in ${folder##*/}"
-        terraform validate -no-color -lock=false "$@"
-        ;;
-      "init")
-        info "Running '$subcommand' in ${folder##*/}"
-        terraform init "$@"
-        ;;
-      "fmt")
-        info "Running '$subcommand' in ${folder##*/}"
-        terraform fmt -check "$@"
-        ;;
-      esac
-    )
+    run_terraform_command "$folder" "$subcommand" "$@"
   done
 
-  if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-    for folder in $modified_dirs; do
+  if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
+    handle_pull_request_comments "$modified_dirs"
+  fi
+}
+
+run_terraform_command() {
+  local folder=$1
+  local subcommand=$2
+  shift 2 # Remove first two arguments
+
+  info "Running '$subcommand' in ${folder##*/}"
+  (
+    cd "${folder}"
+    case "$subcommand" in
+      plan)
+        execute_terraform_plan "$@"
+        ;;
+      apply)
+        terraform apply -auto-approve -input=false -lock=false "$@"
+        ;;
+      validate)
+        terraform validate -no-color -lock=false "$@"
+        ;;
+      init)
+        terraform init "$@"
+        ;;
+      fmt)
+        terraform fmt -check "$@"
+        ;;
+    esac
+  )
+}
+
+execute_terraform_plan() {
+  terraform plan -no-color -input=false -out=tfplan -lock=false "$@"
+  if [ -f tfplan ]; then
+    terraform show -no-color tfplan > plan_output.txt
+    PLAN_OUTPUT=$(cat plan_output.txt)
+    echo "${PLAN_OUTPUT}"
+  else
+    info "Plan file not found"
+  fi
+}
+
+handle_pull_request_comments() {
+  local modified_dirs=$1
+
+  for folder in $modified_dirs; do
+    (
       cd "${folder}"
       local directory=$(basename "$folder")
       info "Formatting tfplan for PR Commenter on $folder"
 
       delete_existing_comment "$directory"
-      local input
-      if [ -f tfplan ]; then
-        input=$(terraform show tfplan -no-color)
-        if [ "$input" != "This plan does nothing." ]; then
-          local clean_plan=${input::65300}
-          clean_plan=$(echo "$clean_plan" | sed -r 's/^([[:blank:]]*)([-+~])/\2\1/g')
-          [ "${HIGHLIGHT_CHANGES:-true}" = 'true' ] && clean_plan=$(echo "$clean_plan" | sed -r 's/^~/!/g')
+      post_pr_comment_if_plan_exists "$directory"
+    )
+    cd "$home_dir"
+  done
+}
 
-          post_new_comment "$directory" "$clean_plan"
-        else
-          info "Plan is empty for $directory"
-        fi
-      else
-        info "Plan file not found for $directory"
-      fi
-      cd "$home_dir"
-    done
+post_pr_comment_if_plan_exists() {
+  local directory=$1
+  local input
+
+  if [ -f tfplan ]; then
+    input=$(terraform show tfplan -no-color)
+    if [ "$input" != "This plan does nothing." ]; then
+      local clean_plan=${input::65300}
+      clean_plan=$(echo "$clean_plan" | sed -r 's/^([[:blank:]]*)([-+~])/\2\1/g')
+      [ "${HIGHLIGHT_CHANGES:-true}" = 'true' ] && clean_plan=$(echo "$clean_plan" | sed -r 's/^~/!/g')
+
+      post_new_comment "$directory" "$clean_plan"
+    else
+      info "Plan is empty for $directory"
+    fi
+  else
+    info "Plan file not found for $directory"
   fi
 }
 
