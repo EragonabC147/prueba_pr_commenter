@@ -112,6 +112,7 @@ do_terraform() {
   fi
 }
 
+# Function to run Terraform commands in a specified directory
 run_terraform_command() {
   local folder=$1
   local subcommand=$2
@@ -140,6 +141,7 @@ run_terraform_command() {
   )
 }
 
+# Function to execute Terraform plan command and show the plan output
 execute_terraform_plan() {
   terraform plan -no-color -input=false -out=tfplan -lock=false "$@"
   if [ -f tfplan ]; then
@@ -151,6 +153,7 @@ execute_terraform_plan() {
   fi
 }
 
+# Function to handle comments on pull requests
 handle_pull_request_comments() {
   local modified_dirs=$1
 
@@ -167,6 +170,7 @@ handle_pull_request_comments() {
   done
 }
 
+# Function to post a pull request comment if a plan file exists
 post_pr_comment_if_plan_exists() {
   local directory=$1
   local input
