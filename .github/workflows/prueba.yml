@@ -5,6 +5,15 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+  pull-requests: write
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,12 +30,12 @@ jobs:
           aws-session-token: ${{ secrets.AWS_TOKEN }}
           aws-region: us-east-1
 
-      - name: Run custom action
+      - name: Run Terraform Init
         uses: ./.github/action
         with:
           arg: "init"
 
-      - name: Run Plan
+      - name: Run Terraform Plan
         uses: ./.github/action
         with:
           arg: "plan"
